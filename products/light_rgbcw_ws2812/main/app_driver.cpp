@@ -15,6 +15,7 @@
 #include <stdio.h>
 
 #include <light_driver.h>
+#include "color_format.h"
 
 #include "app_priv.h"
 
