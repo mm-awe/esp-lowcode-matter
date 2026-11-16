@@ -6,6 +6,8 @@ static ws2812_buffer_t ws2812Buffer;
 #define RMT_DEFAULT_TX_CHANNEL       (0)
 #define RMT_DEFAULT_CLK_RESOLUTION   XTAL_CLK_FREQ
 
+size_t num_leds = 12; // Number of WS2812 LEDs in the chain. TODO: define this from somewhere higher up in the config chain
+
 int ws2812_driver_init(void) {
     rmt_init_device();
     return 0;
@@ -102,7 +104,8 @@ int ws2812_driver_update_channels(void) {
     ws2812Buffer.RMTBufferGRB[1] = ws2812Buffer.RGBBuffer.red;
     ws2812Buffer.RMTBufferGRB[2] = ws2812Buffer.RGBBuffer.blue;
     // update color settings
-    rmt_send_bytes(ws2812Buffer.RMTBufferGRB, 24, &ws2812RmtChannel);
+
+    rmt_send_bytes(ws2812Buffer.RMTBufferGRB, 24, &ws2812RmtChannel, num_leds);
 
     return 0;
 }

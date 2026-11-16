@@ -153,7 +153,7 @@ bool rmt_config_tx_channel(rmt_channel_t* channel)
     return true;
 }
 
-bool rmt_send_bytes(void* dataBuffer, size_t numBits, rmt_channel_t* channel) {
+bool rmt_send_bytes(void* dataBuffer, size_t numBits, rmt_channel_t* channel, size_t repeats) {
 
     // printf("Begin to send Bytes through RMT channel %lu\n", channel->channalId);
     rmt_ll_tx_stop(lpRmtHalContext.regs, channel->channalId);
@@ -169,6 +169,12 @@ bool rmt_send_bytes(void* dataBuffer, size_t numBits, rmt_channel_t* channel) {
     }
     RMTMEM.channels[channel->channalId].symbols[numBits] = (rmt_symbol_word_t)((uint32_t)(0));
 
+    rmt_ll_tx_reset_pointer(lpRmtHalContext.regs, channel->channalId);
+    rmt_ll_tx_reset_loop_count(lpRmtHalContext.regs, channel->channalId);
+    rmt_ll_tx_enable_loop(lpRmtHalContext.regs, channel->channalId, true);
+    rmt_ll_tx_enable_loop_count(lpRmtHalContext.regs, channel->channalId, true);
+    rmt_ll_tx_set_loop_count(lpRmtHalContext.regs, channel->channalId, repeats);
+    rmt_ll_tx_enable_loop_autostop(lpRmtHalContext.regs, channel->channalId, true);
     rmt_ll_tx_start(lpRmtHalContext.regs, channel->channalId);
 
     return true;
