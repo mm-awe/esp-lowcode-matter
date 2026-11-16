@@ -60,9 +60,9 @@ int app_driver_set_light_brightness(uint8_t brightness)
 
 int app_driver_set_light_hue(uint8_t hue)
 {
-    hue = hue * 360 / 255;
-    printf("%s: Setting light hue: %d\n", TAG, hue);
-    return light_driver_set_hue(hue);
+    uint16_t real_hue = hue * 359 / 255;
+    printf("%s: Setting light hue: %d\n", TAG, real_hue);
+    return light_driver_set_hue(real_hue);
 }
 
 int app_driver_set_light_saturation(uint8_t saturation)
