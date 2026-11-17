@@ -70,7 +70,7 @@ static void app_driver_report_humidity(float humidity)
 
     low_code_feature_data_t update_data = {
         .details = {
-            .endpoint_id = 1,
+            .endpoint_id = 2,
             .feature_id = LOW_CODE_FEATURE_ID_UNHANDLED,
             .low_level = {
                 .matter = {
