@@ -15,9 +15,14 @@ Build from the workspace root after exporting ESP-IDF and ESP-AMP:
 ```sh
 source /workspace/esp-idf/export.sh
 export ESP_AMP_PATH=/workspace/esp-amp
-idf.py -C rmt_loop_errata_test set-target esp32c6
-idf.py -C rmt_loop_errata_test build
+idf.py -C products/rmt_loop_errata_test set-target esp32c6
+idf.py -C products/rmt_loop_errata_test build
 ```
 
 The resulting binary is an LP subcore image; it must be loaded by an
 ESP-AMP-compatible HP-core loader. GPIO 8 is the RMT output.
+
+Subcore `printf` is routed through the ESP-AMP system supplicant, matching the
+template product. The HP-core firmware must also be built with
+`CONFIG_ESP_AMP_SYSTEM_ENABLE_SUPPLICANT=y` and
+`CONFIG_ESP_AMP_ROUTE_SUBCORE_PRINT=y` for logs to appear on its console.
