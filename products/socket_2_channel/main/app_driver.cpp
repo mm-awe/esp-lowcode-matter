@@ -113,6 +113,7 @@ int app_driver_init()
         .io_conf = {
             .ws2812_io = {
                 .ctrl_io = INDICATOR_GPIO_NUM,
+                .num_leds = 1,
             },
         },
         .min_brightness = 0,

@@ -69,6 +69,7 @@ typedef union {
     } led_io;             /**< Standard LED GPIO configuration */
     struct {
         gpio_num_t ctrl_io; /**< Control GPIO for WS2812 */
+        uint32_t num_leds;  /**< Number of WS2812 LEDs */
     } ws2812_io;          /**< WS2812 GPIO configuration */
 } light_io_conf_t;
 

@@ -138,7 +138,11 @@ int light_driver_init(light_driver_config_t *config)
             printf("Failed to init device\n");
             g_light.dev.deinit();
         }
-        g_light.dev.regist_channel(LIGHT_CHANNEL_COMB_INVALID, config->io_conf.ws2812_io.ctrl_io);
+        ws2812_driver_regist_channel_with_led_count(
+            LIGHT_CHANNEL_COMB_INVALID,
+            config->io_conf.ws2812_io.ctrl_io,
+            config->io_conf.ws2812_io.num_leds
+        );
         g_light.channel_comb = LIGHT_CHANNEL_COMB_3CH_RGB;
         g_light.channel.red = WS2812_CHANNEL_RED;
         g_light.channel.green = WS2812_CHANNEL_GREEN;
