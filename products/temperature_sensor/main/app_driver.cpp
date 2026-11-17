@@ -46,6 +46,7 @@ static void app_driver_trigger_factory_reset_button_callback(void *arg, void *da
 static void app_driver_report_temperature(float temp)
 {
     int16_t temperature = temp * 100;
+    printf("%s: Reporting temperature: %d\n", TAG, temperature);
     /* Update the feature */
     low_code_feature_data_t update_data = {
         .details = {
@@ -62,24 +63,51 @@ static void app_driver_report_temperature(float temp)
     low_code_feature_update_to_system(&update_data);
 }
 
+static void app_driver_report_humidity(float humidity)
+{
+    uint16_t humidity_hundredths_percent = (uint16_t)(humidity * 100.0f + 0.5f);
+    printf("%s: Reporting humidity: %u\n", TAG, (unsigned int)humidity_hundredths_percent);
+
+    low_code_feature_data_t update_data = {
+        .details = {
+            .endpoint_id = 1,
+            .feature_id = LOW_CODE_FEATURE_ID_UNHANDLED,
+            .low_level = {
+                .matter = {
+                    .cluster_id = 0x0405,
+                    .attribute_id = 0,
+                },
+            },
+        },
+        .value = {
+            .type = LOW_CODE_VALUE_TYPE_UNSIGNED_INTEGER,
+            .value_len = sizeof(humidity_hundredths_percent),
+            .value = (uint8_t*)&humidity_hundredths_percent,
+        },
+    };
+
+    low_code_feature_update_to_system(&update_data);
+}
+
 /*
- * Read the temperature from the sensor.
- * Also report the updated value to the system
+ * Read temperature and humidity from the sensor and report both to the system.
  *
  * Note: The function signature must match the required timer callback format,
  * so `timer_handle` and `user_data` are included but intentionally unused.
  */
 void app_driver_read_and_report_feature(system_timer_handle_t timer_handle, void *user_data)
 {
-    float temperature = 0.0;
+    float temperature = 23.0;
+    float humidity = 45.0;
 
-    /* Reading temperature */
-    temperature_sensor_sht30_get_celsius(I2C_PORT, &temperature);
+    /* Read temperature and humidity when sensor sampling is enabled. */
+    //temperature_sensor_sht30_get_measurements(I2C_PORT, &temperature, &humidity);
 
     system_delay_ms(100);
 
-    /* Reporting Temperature */
+    /* Report temperature and relative humidity (Matter's 0.01% units). */
     app_driver_report_temperature(temperature);
+    app_driver_report_humidity(humidity);
 }
 
 int app_driver_init()
@@ -117,18 +145,18 @@ int app_driver_init()
     light_driver_set_power(true);
 
     /* Initialize I2C */
-    int ret = i2c_master_init(I2C_PORT, I2C_SCL_IO, I2C_SDA_IO);
+    /*int ret = i2c_master_init(I2C_PORT, I2C_SCL_IO, I2C_SDA_IO);
     if (ret) {
         printf("%s: Failed to initialise master i2c\n", TAG);
         return -1;
-    }
+    }*/
 
     /* Initialize sensor */
-    ret = temperature_sensor_sht30_init(I2C_PORT);
+    /*ret = temperature_sensor_sht30_init(I2C_PORT);
     if (ret) {
         printf("%s: Failed to initialise sht30 temperature sensor\n", TAG);
         return -1;
-    }
+    }*/
 
     /*
      * Create a timer that will call `app_driver_read_and_report_feature`

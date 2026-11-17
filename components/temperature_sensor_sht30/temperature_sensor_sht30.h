@@ -23,6 +23,18 @@ extern "C" {
 int temperature_sensor_sht30_init(int i2c_port);
 
 /**
+ * @brief Read temperature in Celsius and relative humidity in percent.
+ *
+ * Either output pointer may be NULL, but at least one must be provided.
+ *
+ * @param[in] i2c_port I2C port number to which the sensor is connected.
+ * @param[out] temperature Pointer to a float where temperature will be stored.
+ * @param[out] humidity Pointer to a float where relative humidity will be stored.
+ * @return 0 on success, non-zero on failure.
+ */
+int temperature_sensor_sht30_get_measurements(int i2c_port, float *temperature, float *humidity);
+
+/**
  * @brief Read temperature in Celsius from the SHT30 sensor.
  *
  * This function reads the temperature data from the sensor and stores it in

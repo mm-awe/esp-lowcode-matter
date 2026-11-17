@@ -99,7 +99,7 @@ static const char *TAG = "temp_sensor_driver_sht30";
 
 #define GET_TEMPERATURE_C(x)                   (((x * 175)/65535) - 45)
 #define GET_TEMPERATURE_F(x)                   (((x * 315)/65535) - 49)
-#define GET_HUMIDITY_RH(x)                     ((x * 100)/65535)
+#define GET_HUMIDITY_RH(x)                     (100.0f * (float)(x) / 65535.0f)
 
 static uint8_t calculate_crc8(const uint8_t *data, size_t len)
 {
@@ -126,7 +126,12 @@ static esp_err_t sht30_send_command(int i2c_port, uint16_t cmd)
 
 static esp_err_t sht30_read_measurement(int i2c_port, float *temperature, float *humidity) {
     uint8_t data[6];
-    i2c_master_read_from_device(i2c_port, 0x44, data, 6, -1);
+    esp_err_t err = i2c_master_read_from_device(i2c_port, 0x44, data, sizeof(data), -1);
+    if (err != ESP_OK) {
+        printf("%s: Failed to read measurement: %d\n", TAG, err);
+        return err;
+    }
+
     // Verify CRC for temperature and humidity
     if (calculate_crc8(&data[0], 2) != data[2] || calculate_crc8(&data[3], 2) != data[5]) {
         printf("%s: CRC check failed\n", TAG);
@@ -154,9 +159,9 @@ int temperature_sensor_sht30_init(int i2c_port)
     return ESP_OK;
 }
 
-int temperature_sensor_sht30_get_celsius(int i2c_port, float *temperature)
+int temperature_sensor_sht30_get_measurements(int i2c_port, float *temperature, float *humidity)
 {
-    if (!temperature) {
+    if (!temperature && !humidity) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -170,5 +175,14 @@ int temperature_sensor_sht30_get_celsius(int i2c_port, float *temperature)
 
     ulp_lp_core_delay_cycles(15);
 
-    return sht30_read_measurement(i2c_port, temperature, NULL);
+    return sht30_read_measurement(i2c_port, temperature, humidity);
+}
+
+int temperature_sensor_sht30_get_celsius(int i2c_port, float *temperature)
+{
+    if (!temperature) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    return temperature_sensor_sht30_get_measurements(i2c_port, temperature, NULL);
 }

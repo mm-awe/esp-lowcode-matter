@@ -4,11 +4,12 @@
 
 A temperature sensing product using the SHT30 temperature sensor with periodic reporting, factory reset via button, and device state indication through a WS2812 RGB LED.
 
-* **Periodic Temperature Monitoring**: Measures ambient temperature using the I2C Driver SHT30 sensor and reports the data to the system every 10 seconds.
+* **Periodic Temperature and Humidity Reporting**: Reports temperature and relative humidity to the system every 10 seconds. The SHT30 read call is currently commented out and dummy values are used.
 * **Factory Reset via Button**: Holding the user-configurable button for more than 5 seconds and then releasing it triggers a factory reset event.
 * **Device State Indication**: The WS2812 RGB LED visually indicates the device’s current state — for example, a blinking LED signifies setup mode.
 * **Matter Data Model Specification**:
   * **Device Type**: `Temperature Sensor`
+  * **Humidity Cluster**: `Relative Humidity Measurement` on endpoint 1
 
 ## Hardware Configuration
 
@@ -51,8 +52,8 @@ The `app_driver_init()` function (called from `setup()` in `app_main.cpp`) handl
 
 Every 10 seconds, the timer callback:
 
-* Reads temperature data from the SHT30 temperature sensor
-* Reports it to the system via `app_driver_report_temperature()`
+* Reports temperature and relative humidity via `app_driver_report_temperature()` and `app_driver_report_humidity()`
+* Uses dummy values until the commented SHT30 read call is enabled
 
 ### Extending with Other I2C Sensors
 
