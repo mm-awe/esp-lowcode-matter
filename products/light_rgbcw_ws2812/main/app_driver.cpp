@@ -75,7 +75,7 @@ int app_driver_set_light_saturation(uint8_t saturation)
     return light_driver_set_saturation(saturation);
 }
 
-void app_driver_set_light_temperature(uint16_t temperature)
+int app_driver_set_light_temperature(uint16_t temperature)
 {
     temperature = 1000000 / temperature;
     printf("%s: Setting light temperature: %d\n", TAG, temperature);
@@ -100,12 +100,12 @@ static inline uint8_t sat_frac_to_u8(double s)
     return (uint8_t)(s * 100.0 + 0.5);        /* 0‥1 → 0‥100, 반올림 */
 }
 
-void app_driver_set_light_xy(uint16_t x16, uint16_t y16)
+int app_driver_set_light_xy(uint16_t x16, uint16_t y16)
 {
     /* 1) 16‑bit → 정규화 */
     double x = x16 / 65535.0;
     double y = y16 / 65535.0;
-    if (y <= 1e-6 || x + y > 1.0) return;     /* 방어 코드 */
+    if (y <= 1e-6 || x + y > 1.0) return -1;     /* 방어 코드 */
 
     /* 2) CIE xyY (Y=1) → 선형 sRGB */
     double X = x / y;
@@ -148,7 +148,7 @@ void app_driver_set_light_xy(uint16_t x16, uint16_t y16)
     double S = (max <= 1e-6) ? 0.0 : (delta / max);
 
     /* 4) 드라이버 호출 */
-    light_driver_set_hue(hue_deg_to_u16(H));   /* 0‑360° → uint16_t */
+    return light_driver_set_hue(hue_deg_to_u16(H)) |   /* 0‑360° → uint16_t */
     light_driver_set_saturation(sat_frac_to_u8(S)); /* 0‑1 → 0‑100% */
 }
 
