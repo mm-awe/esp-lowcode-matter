@@ -19,6 +19,8 @@
 
 #include "app_priv.h"
 
+#include <math.h>
+
 #define WS2812_CTRL_IO ((gpio_num_t)8)
 
 static const char *TAG = "app_driver";
@@ -39,10 +41,10 @@ int app_driver_init()
         .max_brightness = 100,
     };
     light_driver_init(&cfg);
-    light_driver_set_power(true);
+    light_driver_set_power(false);
     light_driver_set_hue(100);
     light_driver_set_saturation(100);
-    light_driver_set_brightness(100);
+    light_driver_set_brightness(50);
     return 0;
 }
 
@@ -73,13 +75,81 @@ int app_driver_set_light_saturation(uint8_t saturation)
     return light_driver_set_saturation(saturation);
 }
 
-int app_driver_set_light_temperature(uint16_t temperature)
+void app_driver_set_light_temperature(uint16_t temperature)
 {
     temperature = 1000000 / temperature;
     printf("%s: Setting light temperature: %d\n", TAG, temperature);
     HS_color_t hs;
     temp_to_hs(temperature, &hs);
     return light_driver_set_saturation(hs.saturation) | light_driver_set_hue(hs.hue);
+}
+
+/* 도 → 0‑360 정수, 퍼센트 → 0‑100 정수로 바꿔 주는 작은 헬퍼                   */
+static inline uint16_t hue_deg_to_u16(double h)
+{
+    /* fmod() 결과가 음수로 나올 수 있음 → 0‥360 로 감싸기                   */
+    if (h < 0)            h += 360.0;
+    else if (h >= 360.0)  h = fmod(h, 360.0);
+    return (uint16_t)(h + 0.5);               /* 반올림 */
+}
+
+static inline uint8_t sat_frac_to_u8(double s)
+{
+    if (s < 0) s = 0;
+    if (s > 1) s = 1;
+    return (uint8_t)(s * 100.0 + 0.5);        /* 0‥1 → 0‥100, 반올림 */
+}
+
+void app_driver_set_light_xy(uint16_t x16, uint16_t y16)
+{
+    /* 1) 16‑bit → 정규화 */
+    double x = x16 / 65535.0;
+    double y = y16 / 65535.0;
+    if (y <= 1e-6 || x + y > 1.0) return;     /* 방어 코드 */
+
+    /* 2) CIE xyY (Y=1) → 선형 sRGB */
+    double X = x / y;
+    double Y = 1.0;
+    double Z = (1.0 - x - y) / y;
+
+    double r =  3.2406*X - 1.5372*Y - 0.4986*Z;
+    double g = -0.9689*X + 1.8758*Y + 0.0415*Z;
+    double b =  0.0557*X - 0.2040*Y + 1.0570*Z;
+
+    /* 음수 제거 */
+    if (r < 0) r = 0;
+    if (g < 0) g = 0;
+    if (b < 0) b = 0;
+
+    /* sRGB 값이 1.0을 넘으면 전체를 동일 비율로 스케일해 클리핑 방지           */
+    double max_rgb = fmax(r, fmax(g, b));
+    if (max_rgb > 1.0) {
+        r /= max_rgb;
+        g /= max_rgb;
+        b /= max_rgb;
+    }
+
+    /* 3) RGB → HSV */
+    double max = fmax(r, fmax(g, b));
+    double min = fmin(r, fmin(g, b));
+    double delta = max - min;
+
+    /* Hue 계산 (deg) */
+    double H = 0.0;
+    if (delta > 1e-6) {
+        if (max == r)        H = 60.0 * fmod((g - b) / delta, 6.0);
+        else if (max == g)   H = 60.0 * (((b - r) / delta) + 2.0);
+        else                 H = 60.0 * (((r - g) / delta) + 4.0);
+    }
+    /* fmod 결과 보정 */
+    if (H < 0.0) H += 360.0;
+
+    /* Saturation (0‑1) */
+    double S = (max <= 1e-6) ? 0.0 : (delta / max);
+
+    /* 4) 드라이버 호출 */
+    light_driver_set_hue(hue_deg_to_u16(H));   /* 0‑360° → uint16_t */
+    light_driver_set_saturation(sat_frac_to_u8(S)); /* 0‑1 → 0‑100% */
 }
 
 int app_driver_event_handler(low_code_event_t *event)
