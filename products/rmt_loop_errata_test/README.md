@@ -1,5 +1,9 @@
 # RMT loop errata test
 
+A test program to learn more about the loop issue. I am suspecting it may be related to a confirm errata in the C6 RMT loop function, but am unsure. For now i have fixed the light issue by forcing the last symbol of rmt transmissions in the light project to the known working `0x0024800c` to avoid `0x000c8024` which apparantly breaks the loop.
+
+<!-- copilot stuff below -->
+
 Standalone ESP-AMP LP-core test project. It does not use or include the low-code
 components. It configures RMT channel 0 on GPIO 8 with the same 40 MHz clock,
 12/36-tick WS2812 symbols, 24-bit payload, 12 hardware repeats, 48-symbol TX
