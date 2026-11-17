@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "rmt.h"
+#include <ulp_lp_core_utils.h>
 
 static rmt_hal_context_t lpRmtHalContext;
 
@@ -155,19 +156,69 @@ bool rmt_config_tx_channel(rmt_channel_t* channel)
 
 bool rmt_send_bytes(void* dataBuffer, size_t numBits, rmt_channel_t* channel, uint32_t repeats) {
 
-    // printf("Begin to send Bytes through RMT channel %lu\n", channel->channalId);
-    rmt_ll_tx_stop(lpRmtHalContext.regs, channel->channalId);
-    // ulp_lp_core_delay_us(50);
-    if (numBits >= 48) {
-        // printf("Unsupported RMT transmission size: %lu. %d Maximum\n", numBits, 47);
+    if (!dataBuffer) {
+        printf("RMT TX rejected: data buffer is null\n");
+        return false;
+    }
+    if (numBits == 0 || numBits >= 48) {
+        printf("Unsupported RMT transmission size: %u. Must be between 1 and 47 bits\n",
+               (unsigned)numBits);
+        return false;
+    }
+    if (repeats == 0 || repeats > RMT_LL_MAX_LOOP_COUNT_PER_BATCH) {
+        printf("Unsupported RMT repeat count: %u. Maximum %u\n",
+               (unsigned)repeats, (unsigned)RMT_LL_MAX_LOOP_COUNT_PER_BATCH);
         return false;
     }
 
+    uint32_t channelId = channel->channalId;
+    uint32_t stopWaitUs = 0;
+    const uint32_t timeoutUs = 10000;
+    if (lpRmtHalContext.regs->chnstatus[channelId].state_chn != 0) {
+        rmt_ll_tx_stop(lpRmtHalContext.regs, channelId);
+        while (lpRmtHalContext.regs->chnstatus[channelId].state_chn != 0 &&
+               stopWaitUs < timeoutUs) {
+            ulp_lp_core_delay_us(1);
+            stopWaitUs++;
+        }
+        if (lpRmtHalContext.regs->chnstatus[channelId].state_chn != 0) {
+            printf("RMT TX stop timeout: status=0x%08x int_raw=0x%08x\n",
+                   (unsigned)lpRmtHalContext.regs->chnstatus[channelId].val,
+                   (unsigned)rmt_ll_tx_get_interrupt_status_raw(lpRmtHalContext.regs, channelId));
+            return false;
+        }
+    }
+
+    const uint8_t *bytes = dataBuffer;
+    printf("RMT TX begin: ch=%u bits=%u repeats=%u data=",
+           (unsigned)channelId, (unsigned)numBits, (unsigned)repeats);
+    for (size_t i = 0; i < (numBits + 7) / 8; i++) {
+        printf("%02x", (unsigned)bytes[i]);
+    }
+    printf("\n");
+
     // write contents bit pattern to RMT memory
     for (size_t i = 0; i < numBits; i++) {
-        RMTMEM.channels[channel->channalId].symbols[i] = (((uint8_t*)dataBuffer)[i>>3] & (1 << (channel->msbFirst ? (7 - i % 8) : (i % 8)))) ? channel->bit1 : channel->bit0;
+        RMTMEM.channels[channel->channalId].symbols[i] = (bytes[i >> 3] & (1 << (channel->msbFirst ? (7 - i % 8) : (i % 8)))) ? channel->bit1 : channel->bit0;
     }
+    RMTMEM.channels[channel->channalId].symbols[numBits-1] = (rmt_symbol_word_t)((uint32_t)(0x0024800c));
     RMTMEM.channels[channel->channalId].symbols[numBits] = (rmt_symbol_word_t)((uint32_t)(0));
+
+    printf("RMT symbols:");
+    for (size_t i = 0; i <= numBits; i++) {
+        printf(" %u:0x%08x", (unsigned)i,
+               (unsigned)RMTMEM.channels[channelId].symbols[i].val);
+    }
+    printf("\n");
+
+    printf("RMT TX prepared: sym0=0x%08x sym%u=0x%08x end=0x%08x conf=0x%08x tx_lim=0x%08x status=0x%08x\n",
+           (unsigned)RMTMEM.channels[channelId].symbols[0].val,
+           (unsigned)(numBits - 1),
+           (unsigned)RMTMEM.channels[channelId].symbols[numBits - 1].val,
+           (unsigned)RMTMEM.channels[channelId].symbols[numBits].val,
+           (unsigned)lpRmtHalContext.regs->chnconf0[channelId].val,
+           (unsigned)lpRmtHalContext.regs->chn_tx_lim[channelId].val,
+           (unsigned)lpRmtHalContext.regs->chnstatus[channelId].val);
 
     rmt_ll_tx_reset_pointer(lpRmtHalContext.regs, channel->channalId);
     rmt_ll_tx_reset_loop_count(lpRmtHalContext.regs, channel->channalId);
@@ -175,7 +226,36 @@ bool rmt_send_bytes(void* dataBuffer, size_t numBits, rmt_channel_t* channel, ui
     rmt_ll_tx_enable_loop_count(lpRmtHalContext.regs, channel->channalId, true);
     rmt_ll_tx_set_loop_count(lpRmtHalContext.regs, channel->channalId, repeats);
     rmt_ll_tx_enable_loop_autostop(lpRmtHalContext.regs, channel->channalId, true);
+    const uint32_t loopEndEvent = RMT_LL_EVENT_TX_LOOP_END(channel->channalId);
+    const uint32_t txDoneEvent = RMT_LL_EVENT_TX_DONE(channel->channalId);
+    const uint32_t txErrorEvent = RMT_LL_EVENT_TX_ERROR(channel->channalId);
+    const uint32_t terminalEvents = loopEndEvent | txDoneEvent | txErrorEvent;
+    rmt_ll_clear_interrupt_status(lpRmtHalContext.regs,
+                                  RMT_LL_EVENT_TX_MASK(channel->channalId) | txErrorEvent);
+    printf("RMT TX start: conf=0x%08x tx_lim=0x%08x status=0x%08x int_raw=0x%08x\n",
+           (unsigned)lpRmtHalContext.regs->chnconf0[channelId].val,
+           (unsigned)lpRmtHalContext.regs->chn_tx_lim[channelId].val,
+           (unsigned)lpRmtHalContext.regs->chnstatus[channelId].val,
+           (unsigned)rmt_ll_tx_get_interrupt_status_raw(lpRmtHalContext.regs, channelId));
     rmt_ll_tx_start(lpRmtHalContext.regs, channel->channalId);
 
-    return true;
+    // Stop waiting if the channel completes or reports an error instead of reaching loop end.
+    uint32_t txEvents;
+    uint32_t waitUs = 0;
+    do {
+        txEvents = rmt_ll_tx_get_interrupt_status_raw(lpRmtHalContext.regs, channel->channalId) & terminalEvents;
+        if (!txEvents && waitUs < timeoutUs) {
+            ulp_lp_core_delay_us(1);
+            waitUs++;
+        }
+    } while (!txEvents && waitUs < timeoutUs);
+
+    printf("RMT TX %s: events=0x%08x status=0x%08x tx_lim=0x%08x int_raw=0x%08x\n",
+           txEvents ? "end" : "timeout",
+           (unsigned)txEvents,
+           (unsigned)lpRmtHalContext.regs->chnstatus[channel->channalId].val,
+           (unsigned)lpRmtHalContext.regs->chn_tx_lim[channel->channalId].val,
+           (unsigned)rmt_ll_tx_get_interrupt_status_raw(lpRmtHalContext.regs, channel->channalId));
+
+    return (txEvents & loopEndEvent) != 0;
 }
