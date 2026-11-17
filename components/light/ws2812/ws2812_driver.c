@@ -32,15 +32,15 @@ int ws2812_driver_regist_channel_with_led_count(uint8_t channel, gpio_num_t gpio
 
     ws2812RmtChannel.bit0 = (rmt_symbol_word_t) {
         .level0 = 1,
-        .duration0 = 14,
+        .duration0 = 12,
         .level1 = 0,
-        .duration1 = 40
+        .duration1 = 36
     };
     ws2812RmtChannel.bit1 = (rmt_symbol_word_t) {
         .level0 = 1,
-        .duration0 = 40,
+        .duration0 = 36,
         .level1 = 0,
-        .duration1 = 14
+        .duration1 = 12
     };
     ws2812RmtChannel.msbFirst = true;
 
