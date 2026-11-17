@@ -34,11 +34,13 @@ struct ws2812_buffer_t {
     uint8_t RMTBufferGRB[3];
     uint32_t FadeSpeed;
     ws2812_channel_enum_t lastUpdatedChannel;
+    uint32_t num_leds;
 };
 
 typedef struct ws2812_buffer_t ws2812_buffer_t;
 
 int ws2812_driver_set_channel(uint8_t channel, uint8_t val);
+int ws2812_driver_regist_channel_with_led_count(uint8_t channel, gpio_num_t gpio, uint32_t num_leds);
 int ws2812_driver_regist_channel(uint8_t channel, gpio_num_t gpio);
 int ws2812_driver_update_channels(void);
 // int ws2812_driver_set_channel_fade(uint8_t channel, uint8_t start, uint8_t end, uint32_t speed);

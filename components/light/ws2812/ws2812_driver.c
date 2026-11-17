@@ -6,14 +6,16 @@ static ws2812_buffer_t ws2812Buffer;
 #define RMT_DEFAULT_TX_CHANNEL       (0)
 #define RMT_DEFAULT_CLK_RESOLUTION   XTAL_CLK_FREQ
 
-size_t num_leds = 12; // Number of WS2812 LEDs in the chain. TODO: define this from somewhere higher up in the config chain
-
 int ws2812_driver_init(void) {
     rmt_init_device();
     return 0;
 }
 
-int ws2812_driver_regist_channel(uint8_t channel, gpio_num_t gpio)
+int ws2812_driver_regist_channel(uint8_t channel, gpio_num_t gpio) {
+    return ws2812_driver_regist_channel_with_led_count(channel, gpio, 12); //TODO: get this config up the chain
+}
+
+int ws2812_driver_regist_channel_with_led_count(uint8_t channel, gpio_num_t gpio, uint32_t num_leds)
 {
     ws2812RmtChannel.channalId = RMT_DEFAULT_TX_CHANNEL;
     // use default clock resolution (40MHz)
@@ -22,6 +24,7 @@ int ws2812_driver_regist_channel(uint8_t channel, gpio_num_t gpio)
     ws2812RmtChannel.gpioPin = gpio;
     // use default clock
     ws2812RmtChannel.groupClkResolutionHz = 0;
+
 
     // rmt_create_default_tx_channel(&ws2812RmtChannel);
     
@@ -43,7 +46,8 @@ int ws2812_driver_regist_channel(uint8_t channel, gpio_num_t gpio)
 
     // set default brightness for hsv color space
     ws2812Buffer.BrightBuffer = 10;
-
+    //set number of leds
+    ws2812Buffer.num_leds = num_leds;
     return 0;
 }
 
@@ -105,7 +109,7 @@ int ws2812_driver_update_channels(void) {
     ws2812Buffer.RMTBufferGRB[2] = ws2812Buffer.RGBBuffer.blue;
     // update color settings
 
-    rmt_send_bytes(ws2812Buffer.RMTBufferGRB, 24, &ws2812RmtChannel, num_leds);
+    rmt_send_bytes(ws2812Buffer.RMTBufferGRB, 24, &ws2812RmtChannel, ws2812Buffer.num_leds);
 
     return 0;
 }

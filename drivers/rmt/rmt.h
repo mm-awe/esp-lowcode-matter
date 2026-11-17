@@ -90,7 +90,7 @@ typedef struct rmt_channel_t     rmt_channel_t;
  * @param repeats Number of times to repeat the transmission
  * @return bool true if successful, false otherwise
  */
-bool rmt_send_bytes(void* dataBuffer, size_t numBits, rmt_channel_t* channel, size_t repeats);
+bool rmt_send_bytes(void* dataBuffer, size_t numBits, rmt_channel_t* channel, uint32_t repeats);
 
 /**
  * @brief Configure RMT transmit channel

@@ -153,7 +153,7 @@ bool rmt_config_tx_channel(rmt_channel_t* channel)
     return true;
 }
 
-bool rmt_send_bytes(void* dataBuffer, size_t numBits, rmt_channel_t* channel, size_t repeats) {
+bool rmt_send_bytes(void* dataBuffer, size_t numBits, rmt_channel_t* channel, uint32_t repeats) {
 
     // printf("Begin to send Bytes through RMT channel %lu\n", channel->channalId);
     rmt_ll_tx_stop(lpRmtHalContext.regs, channel->channalId);
