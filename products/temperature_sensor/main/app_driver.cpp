@@ -17,7 +17,7 @@
 #include <low_code.h>
 #include <system.h>
 #include <i2c_master.h>
-#include <temperature_sensor_sht30.h>
+#include <sensor_bme280.h>
 #include <button_driver.h>
 #include <light_driver.h>
 #include <math.h>
@@ -100,9 +100,10 @@ void app_driver_read_and_report_feature(system_timer_handle_t timer_handle, void
 {
     float temperature = NAN;
     float humidity = NAN;
+    float pressure = NAN;
 
     /* Read temperature and humidity when sensor sampling is enabled. */
-    temperature_sensor_sht30_get_measurements(I2C_PORT, &temperature, &humidity);
+    sensor_bme280_get_measurements(I2C_PORT, &temperature, &humidity, &pressure);
 
     system_delay_ms(100);
 
@@ -153,9 +154,9 @@ int app_driver_init()
     }
 
     /* Initialize sensor */
-    ret = temperature_sensor_sht30_init(I2C_PORT);
+    ret = sensor_bme280_init(I2C_PORT);
     if (ret) {
-        printf("%s: Failed to initialise sht30 temperature sensor\n", TAG);
+        printf("%s: Failed to initialise BME280 sensor\n", TAG);
         return -1;
     }
 
