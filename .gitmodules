@@ -1,3 +1,6 @@
 [submodule "components/esp-amp"]
 	path = components/esp-amp
 	url = ../esp-amp.git
+[submodule "components/sensor_bme280/BME280_SensorAPI"]
+	path = components/sensor_bme280/BME280_SensorAPI
+	url = https://github.com/boschsensortec/BME280_SensorAPI.git
