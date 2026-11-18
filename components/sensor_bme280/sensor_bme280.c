@@ -10,15 +10,17 @@ static const char *TAG = "sensor_bme280";
 #include "BME280_SensorAPI/bme280_defs.h"
 #include "BME280_SensorAPI/bme280.h"
 
+//about 1s
+#define I2C_TIMEOUT 16000000
 
 int read_bme_register(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *intf_ptr) {
     int i2c_port = *((int*)intf_ptr);
-    return 0;
+    return i2c_master_read_from_device(i2c_port, BME280_I2C_ADDR_PRIM, reg_data, len, I2C_TIMEOUT);
 }
 
 int write_bme_register(uint8_t reg_addr, const uint8_t *reg_data, uint32_t len, void *intf_ptr) {
     int i2c_port = *((int*)intf_ptr);
-    return 0;
+    return i2c_master_write_to_device(i2c_port, BME280_I2C_ADDR_PRIM, reg_data, len, I2C_TIMEOUT);
 }
 
 void delay_bme(uint32_t period, void *intf_ptr) {
