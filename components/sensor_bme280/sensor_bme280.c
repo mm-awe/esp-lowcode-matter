@@ -1,3 +1,7 @@
+/*
+ * SPDX-FileCopyrightText: 2026 M&M Software GmbH
+ */
+
 #include <hal/i2c_types.h>
 #include <ulp_lp_core_utils.h>
 #include <esp_err.h>
