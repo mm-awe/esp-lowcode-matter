@@ -20,6 +20,7 @@
 #include <temperature_sensor_sht30.h>
 #include <button_driver.h>
 #include <light_driver.h>
+#include <math.h>
 
 #include "app_priv.h"
 
@@ -27,7 +28,7 @@
 #define WS2812_CTRL_IO (gpio_num_t)8
 
 #define I2C_PORT   I2C_NUM_0
-#define I2C_SCL_IO (gpio_num_t)1
+#define I2C_SCL_IO (gpio_num_t)3
 #define I2C_SDA_IO (gpio_num_t)2
 
 static const char *TAG = "app_driver";
@@ -97,11 +98,11 @@ static void app_driver_report_humidity(float humidity)
  */
 void app_driver_read_and_report_feature(system_timer_handle_t timer_handle, void *user_data)
 {
-    float temperature = 23.0;
-    float humidity = 45.0;
+    float temperature = NAN;
+    float humidity = NAN;
 
     /* Read temperature and humidity when sensor sampling is enabled. */
-    //temperature_sensor_sht30_get_measurements(I2C_PORT, &temperature, &humidity);
+    temperature_sensor_sht30_get_measurements(I2C_PORT, &temperature, &humidity);
 
     system_delay_ms(100);
 
@@ -145,18 +146,18 @@ int app_driver_init()
     light_driver_set_power(true);
 
     /* Initialize I2C */
-    /*int ret = i2c_master_init(I2C_PORT, I2C_SCL_IO, I2C_SDA_IO);
+    int ret = i2c_master_init(I2C_PORT, I2C_SCL_IO, I2C_SDA_IO);
     if (ret) {
         printf("%s: Failed to initialise master i2c\n", TAG);
         return -1;
-    }*/
+    }
 
     /* Initialize sensor */
-    /*ret = temperature_sensor_sht30_init(I2C_PORT);
+    ret = temperature_sensor_sht30_init(I2C_PORT);
     if (ret) {
         printf("%s: Failed to initialise sht30 temperature sensor\n", TAG);
         return -1;
-    }*/
+    }
 
     /*
      * Create a timer that will call `app_driver_read_and_report_feature`
