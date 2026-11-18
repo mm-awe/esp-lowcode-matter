@@ -90,6 +90,32 @@ static void app_driver_report_humidity(float humidity)
     low_code_feature_update_to_system(&update_data);
 }
 
+static void app_driver_report_pressure(float pressure)
+{
+    int16_t pressure_hectopascals = (int16_t)(pressure/100);
+    printf("%s: Reporting pressure: %d\n", TAG, pressure_hectopascals);
+
+    low_code_feature_data_t update_data = {
+        .details = {
+            .endpoint_id = 3,
+            .feature_id = LOW_CODE_FEATURE_ID_UNHANDLED,
+            .low_level = {
+                .matter = {
+                    .cluster_id = 0x0403,
+                    .attribute_id = 0,
+                },
+            },
+        },
+        .value = {
+            .type = LOW_CODE_VALUE_TYPE_UNSIGNED_INTEGER,
+            .value_len = sizeof(pressure_hectopascals),
+            .value = (uint8_t*)&pressure_hectopascals,
+        },
+    };
+
+    low_code_feature_update_to_system(&update_data);
+}
+
 /*
  * Read temperature and humidity from the sensor and report both to the system.
  *
@@ -104,12 +130,12 @@ void app_driver_read_and_report_feature(system_timer_handle_t timer_handle, void
 
     /* Read temperature and humidity when sensor sampling is enabled. */
     sensor_bme280_get_measurements(I2C_PORT, &temperature, &humidity, &pressure);
-
-    system_delay_ms(100);
+    printf("T=%ldC H=%ld%% P=%ldhPa\n", int32_t(temperature), int32_t(humidity), int32_t(pressure));
 
     /* Report temperature and relative humidity (Matter's 0.01% units). */
     app_driver_report_temperature(temperature);
     app_driver_report_humidity(humidity);
+    app_driver_report_pressure(pressure);
 }
 
 int app_driver_init()
