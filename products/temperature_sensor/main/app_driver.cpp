@@ -107,7 +107,7 @@ static void app_driver_report_pressure(float pressure)
             },
         },
         .value = {
-            .type = LOW_CODE_VALUE_TYPE_UNSIGNED_INTEGER,
+            .type = LOW_CODE_VALUE_TYPE_INTEGER,
             .value_len = sizeof(pressure_hectopascals),
             .value = (uint8_t*)&pressure_hectopascals,
         },
