@@ -13,12 +13,12 @@ static const char *TAG = "sensor_bme280";
 //about 1s
 #define I2C_TIMEOUT 16000000
 
-int read_bme_register(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *intf_ptr) {
+int8_t read_bme_register(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *intf_ptr) {
     int i2c_port = *((int*)intf_ptr);
     return i2c_master_read_from_device(i2c_port, BME280_I2C_ADDR_PRIM, reg_data, len, I2C_TIMEOUT);
 }
 
-int write_bme_register(uint8_t reg_addr, const uint8_t *reg_data, uint32_t len, void *intf_ptr) {
+int8_t write_bme_register(uint8_t reg_addr, const uint8_t *reg_data, uint32_t len, void *intf_ptr) {
     int i2c_port = *((int*)intf_ptr);
     return i2c_master_write_to_device(i2c_port, BME280_I2C_ADDR_PRIM, reg_data, len, I2C_TIMEOUT);
 }
@@ -29,7 +29,7 @@ void delay_bme(uint32_t period, void *intf_ptr) {
 
 const static struct bme280_dev default_dev = {
     .chip_id = 0x60,
-    .bme280_intf = BME280_I2C_INTF,
+    .intf = BME280_I2C_INTF,
     .intf_ptr = NULL, //pointer to i2c_port
     .read = &read_bme_register,
     .write = &write_bme_register,
@@ -49,10 +49,9 @@ const static struct bme280_settings default_settings = {
 
 void bme280_error_codes_print_result(const char api_name[], int8_t rslt)
 {
+    printf("%s\t", api_name);
     if (rslt != BME280_OK)
     {
-        printf("%s\t", api_name);
-
         switch (rslt)
         {
             case BME280_E_NULL_PTR:
@@ -81,6 +80,9 @@ void bme280_error_codes_print_result(const char api_name[], int8_t rslt)
                 break;
         }
     }
+    else {
+        printf("OK [%d]\n", rslt);
+    }
 }
 
 
@@ -91,6 +93,9 @@ int sensor_bme280_init(int i2c_port) {
     dev.intf_ptr = &i2c_port;
 
     int8_t rslt;
+    rslt = bme280_init(&dev);
+    bme280_error_codes_print_result("bme280_init", rslt);
+    if (rslt != 0) return ESP_ERR_INVALID_RESPONSE;
     rslt = bme280_set_sensor_settings(BME280_SEL_ALL_SETTINGS, &default_settings, &dev);
     bme280_error_codes_print_result("bme280_set_sensor_settings", rslt);
     if (rslt != 0) return ESP_ERR_INVALID_RESPONSE;
